@@ -1,5 +1,7 @@
 package com.rs.demo.controllers;
 
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
 
 import com.rs.demo.entities.Employee;
 import jakarta.servlet.ServletException;
@@ -14,9 +16,8 @@ import org.hibernate.cfg.Configuration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 @WebServlet("/create-employee")
-public class EmployeeCreateController extends HttpServlet {
+public class EmpoyeeEditController extends HttpServlet {
     private SessionFactory sessionFactory;
 
     @Override
@@ -32,39 +33,40 @@ public class EmployeeCreateController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        List<Employee> classesList = new ArrayList<>();
-        // query db
-        try(Session session = sessionFactory.openSession()){
+        String entityId = req.getParameter("id");
+        try(Session session = sessionFactory.openSession()) {
             session.beginTransaction();
-            classesList = session.createQuery("FROM Employee",Employee.class).getResultList();
+            Employee student = session.get(Employee.class,Integer.parseInt(entityId));
             session.getTransaction().commit();
+            if(student != null) {
+                req.setAttribute("employee", student);
+                req.getRequestDispatcher("employee/edit.jsp").forward(req, resp);
+            }else
+                resp.setStatus(404);
+        }catch (Exception e){
+            resp.setStatus(404);
         }
-        req.setAttribute("employeeList",classesList);
-        req.getRequestDispatcher("employee/form.jsp").forward(req,resp);
     }
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        Employee student = new Employee();
-        student.setEmployee_id(req.getParameter("employee_id"));
-        student.setEmployee_name(req.getParameter("name"));
-        student.setEmail(req.getParameter("email"));
-        student.setPhone_number(req.getParameter("phone_number"));
-
-        try(Session session = sessionFactory.openSession()){
+        String entityId = req.getParameter("id");
+        try(Session session = sessionFactory.openSession()) {
             session.beginTransaction();
-
-            session.save(student);
+            Employee student = session.get(Employee.class,Integer.parseInt(entityId));
+            if(student != null) {
+                student.setPhone_number(req.getParameter("phone"));
+                student.setEmail(req.getParameter("email"));
+                student.setEmployee_name(req.getParameter("name"));
+                // update to DB
+                session.update(student);
+            }
             session.getTransaction().commit();
-
+            resp.sendRedirect("list-student");
         }catch (Exception e){
             resp.setStatus(500);
         }
-
-        resp.sendRedirect("list-employee");
     }
-
-
 
 
 }
